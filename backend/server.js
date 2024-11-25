@@ -1,22 +1,20 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-dotenv.config();
 
-import jwt from 'jsonwebtoken';
-const secretKey = process.env.SECRET_KEY;
-import {MongoClient} from 'mongodb'
-const uri = process.env.DB_URI;
-const client = new MongoClient(uri);
-const db = client.db('Upkeep');
 const app = express();
-const port = 3001; // Changed to avoid conflicts
+const port = 3001; 
 
-import login from "./login.js";
+import loginRoute from "./loginRoute.js";
+import staffRoute from  "./staffRoute.js";
+import adminRoute from "./adminRoute.js"
+import residentRoute from "./residentRoute.js"
 
 app.use(express.json());
 app.use(cors());
-app.use("/login",login);
+app.use("/login",loginRoute);
+app.use("/staff/home",staffRoute);
+app.use("/admin/home",adminRoute);
+app.use("/resident/home",residentRoute);
 
 
 

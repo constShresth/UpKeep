@@ -1,13 +1,14 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route ,Navigate} from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./context/ProtectedRoute";
 import LoginPage from "./pages/Login";
 import ResidentHomePage from "./pages/ResidentHomePage";
 import StaffHomePage from "./pages/StaffHomePage";
 import AdminHomePage from "./pages/AdminHomePage";
+import Home from "./pages/Home";
 import { Navbar } from "./components/Navbar";
-import { useEffect } from "react";
+
 
 function App() {
   // const router = createBrowserRouter([
@@ -139,21 +140,18 @@ function App() {
 
   
   return (
-
-    // <AuthProvider>
-    //   {/* <Navbar/> */}
-    //   <RouterProvider router={router} />
-    // </AuthProvider>
     
     <Router>
       <AuthProvider> 
         <Navbar /> 
         
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<Home/>}/>
+          <Route path="/login" element={<ProtectedRoute pageRole="login"><LoginPage /></ProtectedRoute>} />
           <Route path="/resident/home" element={<ProtectedRoute pageRole="resident"><ResidentHomePage /></ProtectedRoute>} />
           <Route path="/staff/home" element={<ProtectedRoute pageRole="staff"><StaffHomePage /></ProtectedRoute>} />
           <Route path="/admin/home" element={<ProtectedRoute pageRole="admin"><AdminHomePage /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AuthProvider>
     </Router>

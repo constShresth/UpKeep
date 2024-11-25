@@ -1,13 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const StaffHomePage = () => {
   const [selectedHostel, setSelectedHostel] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("");
+  const [staffName, setStaffName]  = useState("")
+  const [isLoading, setIsLoading] = useState(true);
+  const [bool, setBool] = useState(false);
+  const {email} = useAuth();
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedHostel && selectedFloor) {
-      // fetchData();
-      setBool(true)
+      fetchData();
+      // setBool(true)
     } else {
       alert("Please select both hostel and floor.");
     }
@@ -15,44 +20,121 @@ const StaffHomePage = () => {
 
   const fetchData = async () => {
     try {
+      // console.log(typeof(parseInt(selectedFloor.substring(0,1))),selectedHostel.substring(7,8))
+      console.log("fetchdata")
       const response = await fetch(
-        `/http://localhost:3001?hostel=${selectedHostel}&floor=${selectedFloor}`
-      );
+        `http://localhost:3001/staff/home?hostel=${selectedHostel.substring(7,8)}&floor=${parseInt(selectedFloor.substring(0,1))}`) 
       if (!response.ok) {
-        throw new Error("Failed to fetch data");
+        throw new Error("Failed to fetch required data");
       }
-      const result = await response.json();
+      const res = await response.json();
       // setData(result); // Store fetched data
-      setRequests(result);
+      // console.log(typeof(res.data))
+      console.log(res.data)
+      setRequests(res.data);
+      // localStorage.setItem("bool", true);
+      // localStorage.setItem("hostel", selectedHostel);
+      // localStorage.setItem("floor", selectedFloor);
       setBool(true); // Trigger any action you need with `bool`
-    } catch (error) {
+      console.log(res.message)
+
+    }catch (error) {
       console.error("Error fetching data:", error);
-      alert("Failed to fetch data. Please try again.");
+      // alert("Failed to fetch data. Please try again.");
     }
   };
+  const fetchUserDetails = async () => {
+    try {
+      console.log("email", email);
+      const response = await fetch(
+        `http://localhost:3001/staff/home?email=${email}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch staff's data");
+      }
+      const res = await response.json();
+      // console.log(res)
+      // console.log(res.data.roll_no)
+      // console.log(res.data.room_no)
+      console.log(res.data.name)
+      setStaffName(res.data.name)
+    } catch (err) {
+      console.error("Error during fetching staff's data", err);
+    }
+  };
+  useEffect(() => {
+    const func = async()=>{
+      if(staffName==="") await fetchUserDetails();
+      
+      // const storedHostel = localStorage.getItem("hostel")
+      // const storedFloor = localStorage.getItem("floor")
+      // setSelectedFloor(storedFloor);
+      // setSelectedHostel(storedHostel);
+      // if(storedBool) await fetchData();
 
-  const [requests, setRequests] = useState([
-    {
-      roomNo: 101,
-      areas: ["Room", "Washroom"],
-      slot: "",
-      status: "Unaccepted",
-    },
-    { roomNo: 102, areas: ["Room"], slot: "", status: "Unaccepted" },
-    {
-      roomNo: 103,
-      areas: ["Room", "Balcony"],
-      slot: "",
-      status: "Time Expired",
-    },
-    {
-      roomNo: 104,
-      areas: ["Room", "Washroom", "Balcony"],
-      slot: "",
-      status: "Accepted",
-    },
-    { roomNo: 105, areas: ["Room"], slot: "", status: "Done" },
-  ]);
+    }
+    func();
+    // if(bool!==storedBool) setBool(storedBool);
+  }, [])
+  // useEffect(() => {
+  //   const func = async()=>{
+  //     const storedBool = localStorage.getItem("bool");
+  //     console.log(storedBool)
+  //     if(storedBool) await fetchData();
+  //   }
+  //   func();
+  // }, [selectedHostel])
+  
+  // useEffect(()=>{
+  //   setIsLoading(false);
+  // },[bool])
+  
+  const changeStatus = async(room_no, selectedSlot)=>{
+    try {
+      const response = await fetch(`http://localhost:3001/staff/home`, {
+        method: "PUT", // or PATCH if that's your API design
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({hostel:selectedHostel.substring(7,8), room_no: room_no, selected_slot: selectedSlot, staffName: staffName}),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update the selected slot");
+      }
+  
+      const res = await response.json();
+      console.log(res.message); // Log the success message
+      console.log("Slot updated successfully!");
+    } catch (error) {
+      console.error("Error updating slot:", error);
+      // alert("Failed to update slot. Please try again.");
+    }
+  }
+  const [requests, setRequests] = useState([]);
+  // const [selectedSlot, setSelectedSlot] = useState("");
+  // const [requests, setRequests] = useState([
+  //   {
+  //     room_no: 101,
+  //     areas: ["Room", "Washroom"],
+  //     slot: "",
+  //     status: "Unaccepted",
+  //   },
+  //   { room_no: 102, areas: ["Room"], slot: "", status: "Unaccepted" },
+  //   {
+  //     room_no: 103,
+  //     areas: ["Room", "Balcony"],
+  //     slot: "",
+  //     status: "Time Expired",
+  //   },
+  //   {
+  //     room_no: 104,
+  //     areas: ["Room", "Washroom", "Balcony"],
+  //     slot: "",
+  //     status: "Accepted",
+  //   },
+  //   { room_no: 105, areas: ["Room"], slot: "", status: "Done" },
+  // ]);
 
   const timeSlots = [
     "9:00 AM - 10:00 AM",
@@ -61,7 +143,7 @@ const StaffHomePage = () => {
     "12:00 PM - 1:00 PM",
   ];
 
-  const [bool, setBool] = useState(false);
+
 
   const hostels = ["Hostel-A", "Hostel-B", "Hostel-C", "Hostel-D", "Hostel-O"];
   const floors = [
@@ -75,18 +157,19 @@ const StaffHomePage = () => {
     "8th Floor",
   ];
 
-  const handleSlotChange = (roomNo, slot) => {
+  const handleSlotChange = (room_no, slot) => {
     setRequests(
       requests.map((request) =>
-        request.roomNo === roomNo ? { ...request, slot: slot } : request
+        request.room_no === room_no ? { ...request, selected_slot: slot } : request
       )
     );
   };
 
-  const acceptRequest = (roomNo) => {
+  const acceptRequest = (room_no, selectedSlot) => {
+    changeStatus(room_no, selectedSlot);
     setRequests(
       requests.map((request) =>
-        request.roomNo === roomNo ? { ...request, status: "Accepted" } : request
+        request.room_no === room_no ? { ...request, status: "Accepted" } : request
       )
     );
   };
@@ -144,15 +227,16 @@ const StaffHomePage = () => {
         </form>
       </div>
 
-      {bool && (
+      {bool  && (
         <div className="w-full max-w-3xl p-6 bg-white rounded-lg shadow-md mt-4">
           <h2 className="text-3xl font-bold text-[#008080] mb-6 text-center">
             Cleaning Requests
           </h2>
           <ul className="space-y-4">
             {sortedRequests.map((request) => (
+              
               <li
-                key={request.roomNo}
+                key={request.room_no}
                 className={`border-l-4 p-4 rounded-md shadow-sm ${
                   request.status === "Accepted"
                     ? "bg-[#E0FFFF]"
@@ -176,7 +260,11 @@ const StaffHomePage = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-xl font-semibold text-[#008080]">
-                      Room No: {request.roomNo}
+                      Room No: {request.room_no}
+                    </p>
+                    
+                    <p className="text-sm text-[#333333]">
+                      Hostel: {request.hostel}
                     </p>
                     <p className="text-sm text-[#333333]">
                       Areas to Clean: {request.areas.join(", ")}
@@ -188,21 +276,21 @@ const StaffHomePage = () => {
                   {request.status === "Unaccepted" && (
                     <div className="flex flex-col items-end">
                       <label
-                        htmlFor={`slot-${request.roomNo}`}
+                        htmlFor={`slot-${request.room_no}`}
                         className="block text-sm font-medium text-gray-700 mb-2"
                       >
                         Select a Time Slot
                       </label>
                       <select
-                        id={`slot-${request.roomNo}`}
-                        value={request.slot}
+                        id={`slot-${request.room_no}`}
+                        value={request.selected_slot}
                         onChange={(e) =>
-                          handleSlotChange(request.roomNo, e.target.value)
+                          handleSlotChange(request.room_no, e.target.value)
                         }
                         className="block p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#008080] focus:border-[#008080] sm:text-sm mb-2"
                       >
                         <option value="">Select a slot</option>
-                        {timeSlots.map((slot, index) => (
+                        {request.slots.map((slot, index) => (
                           <option key={index} value={slot}>
                             {slot}
                           </option>
@@ -210,19 +298,23 @@ const StaffHomePage = () => {
                       </select>
                       <button
                         className={`bg-[#32CD32] text-white px-4 py-2 rounded-md hover:bg-[#28A828] ${
-                          request.slot === ""
+                          request.selected_slot === ""
                             ? "opacity-50 cursor-not-allowed"
                             : ""
                         }`}
-                        disabled={request.slot === ""}
-                        onClick={() => acceptRequest(request.roomNo)}
+                        disabled={request.selected_slot === ""}
+                        onClick={() => acceptRequest(request.room_no, request.selected_slot)}
                       >
                         Accept Request
                       </button>
                     </div>
                   )}
                   {request.status === "Accepted" && (
+                    <div>
+
                     <p className="text-[#32CD32] font-bold">Accepted</p>
+                    <p>{request.selected_slot}</p>
+                    </div>
                   )}
                   {request.status === "Done" && (
                     <p className="text-[#008080] font-bold">Completed</p>

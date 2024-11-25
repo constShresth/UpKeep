@@ -1,15 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import DisplayRequest from "../components/DisplayRequest";
+import GenerateRequest from "../components/GenerateRequest";
 
 const ResidentHomePage = () => {
-  // Initial states for slots and cleaning options
-  const [slots, setSlots] = useState([
-    { slot: 1, selected: false },
-    { slot: 2, selected: false },
-    { slot: 3, selected: false },
-    { slot: 4, selected: false },
-    { slot: 5, selected: false },
-    { slot: 6, selected: false },
+  const { email } = useAuth();
+  const [timeSlots, setTimeSlots] = useState([
+    { slot: 1, selected: false, time: "9:00 AM - 10:00 AM" },
+    { slot: 2, selected: false, time: "10:00 AM - 11:00 AM" },
+    { slot: 3, selected: false, time: "11:00 AM - 12:00 PM" },
+    { slot: 4, selected: false, time: "12:00 PM - 1:00 PM" },
+    { slot: 5, selected: false, time: "1:00 PM - 2:00 PM" },
+    { slot: 6, selected: false, time: "2:00 PM - 3:00 PM" },
   ]);
+
+  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [selectedAreas, setSelectedAreas] = useState([]);
+  const [rollNo, setRollNo] = useState("");
+  const [roomNo, setRoomNo] = useState("");
+  const [hostelName, setHostelName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [requestGenerated, setRequestGenerated] = useState(false);
+  const [status, setStatus] = useState("");
+  const [staffName, setStaffName] = useState("");
+  const [requestId, setRequestId] = useState("");
 
   const [cleaningOptions, setCleaningOptions] = useState({
     Room: false,
@@ -17,18 +31,14 @@ const ResidentHomePage = () => {
     Balcony: false,
   });
 
-  const [requestGenerated, setRequestGenerated] = useState(false);
-
-  // Handle slot selection toggle
   const toggleSlotSelection = (clickedSlot) => {
-    setSlots(
-      slots.map((slot) =>
+    setTimeSlots(
+      timeSlots.map((slot) =>
         slot.slot === clickedSlot ? { ...slot, selected: !slot.selected } : slot
       )
     );
   };
 
-  // Handle cleaning options toggle
   const toggleCleaningOption = (option) => {
     setCleaningOptions({
       ...cleaningOptions,
@@ -36,113 +46,164 @@ const ResidentHomePage = () => {
     });
   };
 
-  // Submit request
-  const handleSubmit = async() => {
-    
-    setRequestGenerated(true);
+  useEffect(() => {
+    console.log(rollNo);
+    const fetchData = async () => {
+      if (rollNo === "") await fetchUserDetails();
+      console.log("rollNo", rollNo);
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // const bool = await localStorage.getItem("requestGenerated");
+      // console.log("bool",bool)
+      const response = await fetchRequestDetails();
+      const bool = response;
+      if (requestGenerated != bool) setRequestGenerated(bool);
+      console.log("requestGenerated", requestGenerated);
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [rollNo]);
+  // useEffect(() => {
+  //   if(selectedSlots && selectedSlots.length>0) setIsLoading(false);
+  //   console.log(selectedSlots)
+  // }, [selectedSlots, selectedAreas])
+
+  const fetchRequestDetails = async () => {
+    try {
+      console.log(rollNo, typeof rollNo);
+      const response = await fetch(
+        `http://localhost:3001/resident/home?roll_no=${rollNo}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch your cleaning request");
+      }
+      const res = await response.json();
+      console.log(response);
+      // console.log(res)
+      // console.log("res.slots",res.slots)
+      if (response.status == 200) {
+        setSelectedSlots(res.data.slots);
+        setSelectedAreas(res.data.areas);
+        setStatus(res.data.status);
+        setStaffName(res.data.staff);
+        setRequestId(res.data._id);
+        console.log(res.data.status)
+        if(res.data.status==="Done"){
+          return false;
+        }else {
+          return true;
+        };
+      } else {
+        return false;
+      }
+    } catch (err) {
+      console.error("Error during fetching request details", err);
+    }
   };
+
+  const fetchUserDetails = async () => {
+    try {
+      console.log("email", email);
+      const response = await fetch(
+        `http://localhost:3001/resident/home?email=${email}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch resident's data");
+      }
+      const res = await response.json();
+      // console.log(res)
+      // console.log(res.data.roll_no)
+      // console.log(res.data.room_no)
+      // console.log(res.data.hostel)
+      setRollNo(res.data.roll_no);
+      setRoomNo(res.data.room_no);
+      setHostelName(res.data.hostel);
+    } catch (err) {
+      console.error("Error during fetching resident's data", err);
+    }
+  };
+
+  // Submit request
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const roll_no = rollNo;
+    console.log(rollNo);
+    const slots = timeSlots
+      .filter((slot) => slot.selected)
+      .map((slot) => slot.time);
+    const areas = Object.keys(cleaningOptions).filter(
+      (key) => cleaningOptions[key]
+    );
+    const floor = String(roomNo)[0];
+    console.log(floor);
+    const hostel = hostelName;
+    const room_no = roomNo;
+    setSelectedSlots(slots);
+    setSelectedAreas(areas);
+    setStatus("Unaccepted");
+    console.log(slots);
+    console.log(areas);
+    try {
+      console.log("handlesubmit");
+      const response = await fetch("http://localhost:3001/resident/home", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ roll_no, slots, areas, floor, hostel, room_no }), // Include selected role
+      });
+      if (!response.ok) {
+        throw new Error("Failed to add data");
+      }
+      const res = await response.json();
+      console.log(res.message);
+    } catch (err) {
+      console.error("Error during adding data:", err);
+    }
+    setRequestGenerated(true);
+    // localStorage.setItem("requestGenerated", true);
+  };
+
+  const onRequestDelete = ()=>{
+    setSelectedSlots([]);
+    setSelectedAreas([]);
+    setStatus("");
+    setRequestGenerated(false);
+  }
+  
+  const onRequestUpdate = ()=>{
+    setSelectedSlots([]);
+    setSelectedAreas([]);
+    setStatus("");
+    setRequestGenerated(false);
+  }
 
   return (
     <div className="flex min-h-screen  bg-[#F2F2F2] text-[#333333] justify-center items-center">
       {!requestGenerated ? (
-        <div className="max-w-2xl min-w-[42rem] h-2/3 flex flex-col justify-center items-center bg-[#FFFFFF] p-8 rounded-lg shadow-lg">
-          <form className="flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4 text-[#008080]">
-              Select Your Preferred Slots
-            </h2>
-            <div className="mb-6 grid grid-cols-3 gap-4">
-              {slots.map((slot) => (
-                <label
-                  key={slot.slot}
-                  className={`border-2 rounded-md p-2 cursor-pointer hover:bg-light-cyan ${
-                    slot.selected
-                      ? "bg-[#008080] text-white"
-                      : "bg-[#E0FFFF] text-[#333333]"
-                  }`}
-                  onClick={() => toggleSlotSelection(slot.slot)}
-                >
-                  {slot.slot}:00 - {slot.slot + 1}:00
-                </label>
-              ))}
-            </div>
-
-            <h2 className="text-lg font-semibold mb-4 text-[#008080]">
-              What to Clean?
-            </h2>
-            <div className="flex flex-wrap justify-center gap-4 mb-6">
-              {Object.keys(cleaningOptions).map((option) => (
-                <div key={option} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={option}
-                    checked={cleaningOptions[option]}
-                    onChange={() => toggleCleaningOption(option)}
-                  />
-                  <label htmlFor={option} className="ml-2">
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </form>
-          <button
-            className="px-6 py-2 rounded-md bg-[#008080] text-white hover:bg-[#32CD32] shadow-md"
-            onClick={handleSubmit}
-          >
-            Book
-          </button>
-        </div>
+        <GenerateRequest
+          handleSubmit={handleSubmit}
+          timeSlots={timeSlots}
+          cleaningOptions={cleaningOptions}
+          toggleCleaningOption={toggleCleaningOption}
+          toggleSlotSelection={toggleSlotSelection}
+        />
+      ) : isLoading ? (
+        <div>Loading...</div>
       ) : (
-        <div className="max-w-2xl min-w-[42rem] h-2/3 border-2 rounded-lg bg-[#FFFFFF] flex flex-col justify-center items-center p-8 shadow-lg">
-          <h2 className="text-lg font-semibold mb-4 text-[#008080]">
-            Cleaning Request
-          </h2>
-          <div className="mb-4 ">
-            <label className="block mb-2 font-semibold text-center text-lg text-[#333333]">
-              Selected Slots:
-            </label>
-            <div
-              className={`grid gap-2 ${
-                slots.filter((slot) => slot.selected).length === 1
-                  ? "grid-cols-1 justify-center"
-                  : "grid-cols-2"
-              }`}
-            >
-              {slots
-                .filter((slot) => slot.selected)
-                .map((slot) => (
-                  <span
-                    key={slot.slot}
-                    className="border-2 rounded-md text-center p-2 bg-[#008080] text-white"
-                  >
-                    {slot.slot}:00 - {slot.slot + 1}:00
-                  </span>
-                ))}
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-center text-lg text-[#333333]">
-              Cleaning Areas:
-            </label>
-            <div className="flex justify-center gap-2">
-              {Object.entries(cleaningOptions)
-                .filter(([option, isSelected]) => isSelected)
-                .map(([option]) => (
-                  <span
-                    key={option}
-                    className="border-2 rounded-md p-2 bg-[#008080] text-white"
-                  >
-                    {option}
-                  </span>
-                ))}
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-[#333333]">
-              Status: <span className="text-[#FF6F61]">Pending</span>
-            </label>
-          </div>
-        </div>
+        <DisplayRequest
+          selectedSlots={selectedSlots}
+          selectedAreas={selectedAreas}
+          status={status}
+          staffName={staffName}
+          requestId={requestId}
+          onRequestDelete={onRequestDelete}
+          onRequestUpdate={onRequestUpdate}
+        />
       )}
     </div>
   );
