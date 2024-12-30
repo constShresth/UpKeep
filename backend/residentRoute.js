@@ -20,13 +20,14 @@ function getTodayDate() {
 
 router.post("/", async (req, res) => {
   const { roll_no, slots, areas, floor, hostel, room_no } = req.body;
+  let floorInt = parseInt(floor);
   const newRequest = {
     roll_no:roll_no,
     slots:slots,
     areas:areas,
     status: "Unaccepted", // Default status
     date: new Date(),    // Current date
-    floor:floor,
+    floor:floorInt,
     hostel:hostel,
     room_no:room_no,
     selected_slot: "",   // Empty by default
@@ -40,10 +41,10 @@ router.post("/", async (req, res) => {
     const result = await Collection.insertOne(newRequest);
     if (result) {
       // Redirect based on role
-      
+      console.log(result)
       res
         .status(200)
-        .json({ message: "Cleaning data added successfully"});
+        .json({id:result.insertedId, message: "Cleaning data added successfully"});
       console.log("Cleaning data addition successful");
         
     } else {
@@ -65,17 +66,58 @@ router.get("/",async(req,res)=>{
     try{
       const collection = db.collection("logs");
       const data = await collection.findOne({roll_no:rollNo,  date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }});
+      const allCleaningRequest =  await collection.find({roll_no:rollNo}).toArray();
       console.log(data)
-      if (data) {
-        res
-          .status(200)
-          .json({ message: "Cleaning data fetched", data:data});
+      console.log(allCleaningRequest)
+      if (data && allCleaningRequest.length > 0) {
+        res.status(200).json({
+          message: "All data fetched",
+          data: data,
+          allCleaningRequest: allCleaningRequest
+        });
+        console.log("Fetched everything successfully");
+      } else if (data) {
+        res.status(200).json({
+          message: "Cleaning data fetched",
+          data: data
+        });
         console.log("Cleaning data fetched successfully");
-          
+      } else if (allCleaningRequest.length > 0) {
+        res.status(200).json({
+          message: "All cleaning data fetched",
+          allCleaningRequest: allCleaningRequest
+        });
+        console.log("All cleaning data fetched successfully");
       } else {
-        console.log("No cleaning data found")
-        res.status(401).json({ message: "No available cleaning request" });
+        console.log("No past data found");
+        res.status(401).json({ message: "No past data present" });
       }
+      
+      // if (data && allCleaningRequest) {
+      //   res
+      //     .status(200)
+      //     .json({ message: "All data fetched", data:data, allCleaningRequest:allCleaningRequest});
+      //   console.log("Fetched everything successfully");
+          
+      // }
+      // elseif (data) {
+      //   res
+      //     .status(200)
+      //     .json({ message: "Cleaning data fetched", data:data});
+      //   console.log("Cleaning data fetched successfully");
+          
+      // } 
+      // elseif (allCleaningRequest) {
+      //   res
+      //     .status(200)
+      //     .json({ message: "All cleaning data fetched", allRequests:allCleaningRequest});
+      //   console.log("All cleaning data fetched successfully");
+          
+      // }else {
+      //   console.log("No past data found")
+      //   res.status(401).json({ message: "No past data present" });
+      // }
+      
   
     }catch(err){
       console.error("Error during request data fetching",err);

@@ -24,6 +24,8 @@ const ResidentHomePage = () => {
   const [status, setStatus] = useState("");
   const [staffName, setStaffName] = useState("");
   const [requestId, setRequestId] = useState("");
+  const [requests, setRequests] = useState([]);
+  const [todayRequestGenerated, setTodayRequestGenerated] = useState(false);
 
   const [cleaningOptions, setCleaningOptions] = useState({
     Room: false,
@@ -86,17 +88,24 @@ const ResidentHomePage = () => {
       // console.log(res)
       // console.log("res.slots",res.slots)
       if (response.status == 200) {
-        setSelectedSlots(res.data.slots);
-        setSelectedAreas(res.data.areas);
-        setStatus(res.data.status);
-        setStaffName(res.data.staff);
-        setRequestId(res.data._id);
-        console.log(res.data.status)
-        if(res.data.status==="Done"){
-          return false;
-        }else {
-          return true;
-        };
+        if(res.allCleaningRequest){
+          setRequests(res.allCleaningRequest);
+        }
+        if(res.data){
+          setSelectedSlots(res.data.slots);
+          setSelectedAreas(res.data.areas);
+          setStatus(res.data.status);
+          setStaffName(res.data.staff);
+          setRequestId(res.data._id);
+          console.log(res.data.status)
+          console.log(res.data._id)
+          if(res.data.status==="Done"){
+            return false;
+          }else {
+            return true;
+          };
+        }
+        
       } else {
         return false;
       }
@@ -138,6 +147,10 @@ const ResidentHomePage = () => {
     const areas = Object.keys(cleaningOptions).filter(
       (key) => cleaningOptions[key]
     );
+    if (slots.length == 0 || areas.length == 0) {
+      alert("Please select both slots and areas.");
+      return
+    }
     const floor = String(roomNo)[0];
     console.log(floor);
     const hostel = hostelName;
@@ -161,6 +174,7 @@ const ResidentHomePage = () => {
       }
       const res = await response.json();
       console.log(res.message);
+      setRequestId(res.id)
     } catch (err) {
       console.error("Error during adding data:", err);
     }
@@ -180,10 +194,22 @@ const ResidentHomePage = () => {
     setSelectedAreas([]);
     setStatus("");
     setRequestGenerated(false);
+    setTodayRequestGenerated(true);
+    localStorage.setItem("rgt", true);
   }
+  const sortedRequests = React.useMemo(() => {
+    return [...requests].sort((a, b) => {
+      if (a.status === "Time Expired" && b.status !== "Time Expired") return -1;
+      if (a.status === "Accepted" && b.status !== "Accepted") return -1;
+      if (a.status === "Unaccepted" && b.status === "Done") return -1;
+      if (a.status === "Done" && b.status !== "Done") return 1;
+      return 0;
+    });
+  }, [requests]);
 
   return (
-    <div className="flex min-h-screen  bg-[#F2F2F2] text-[#333333] justify-center items-center">
+    <div className="flex flex-col min-h-screen  bg-[#F2F2F2] text-[#333333] justify-center items-center">
+    <div className="my-8"></div>
       {!requestGenerated ? (
         <GenerateRequest
           handleSubmit={handleSubmit}
@@ -191,6 +217,9 @@ const ResidentHomePage = () => {
           cleaningOptions={cleaningOptions}
           toggleCleaningOption={toggleCleaningOption}
           toggleSlotSelection={toggleSlotSelection}
+          todayRequestGenerated={todayRequestGenerated}
+          selectedSlots={selectedSlots}
+          selectedAreas={selectedAreas}
         />
       ) : isLoading ? (
         <div>Loading...</div>
@@ -205,6 +234,46 @@ const ResidentHomePage = () => {
           onRequestUpdate={onRequestUpdate}
         />
       )}
+      <div className="my-8"></div>
+      {!requests.length==0 &&(
+      <div className="w-full max-w-3xl p-6 bg-white rounded-lg shadow-md">
+        <h2 className="text-3xl font-bold text-[#008080] mb-6 text-center">Past Requests</h2>
+        <ul className="space-y-4">
+          {sortedRequests.map((request) => (
+            <li key={request.room_no} className="border-l-4 p-4 rounded-md shadow-sm" style={{
+                borderColor: request.status === 'Accepted' ? '#32CD32' : request.status === 'Unaccepted' ? '#FF6F61' : request.status === 'Time Expired' ? '#FF6F61' : '#008080',
+                backgroundColor: request.status === 'Time Expired' ? '#FFB2B2' : '#E0FFFF' // Light red background for Time Expired
+            }}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xl font-semibold text-[#008080]">Room No: {request.room_no}</p>
+                  <p className="text-sm text-[#333333]">Areas to Clean: {request.areas.join(', ')}</p>
+                  <p className="text-sm text-[#333333]">Status: {request.status}</p>
+                  {request.status === 'Accepted' && (
+                    <p className="text-sm text-[#333333]">Accepted by: {request.staff}</p>
+                  )}
+                  {request.status === 'Done' && (
+                    <p className="text-sm text-[#333333]">Completed by: {request.staff}</p>
+                  )}
+                  <p className="text-sm text-[#333333]">Hostel: {request.hostel}</p>
+                </div>
+                {request.status === 'Unaccepted' && (
+                  <p className="text-[#FF6F61] font-bold">Unaccepted</p>
+                )}
+                {request.status === 'Accepted' && (
+                  <p className="text-[#32CD32] font-bold">Accepted</p>
+                )}
+                {request.status === 'Done' && (
+                  <p className="text-[#008080] font-bold">Completed</p>
+                )}
+                {request.status === 'Time Expired' && (
+                  <p className="text-[#FF6F61] font-bold">Time Expired</p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>)}
     </div>
   );
 };

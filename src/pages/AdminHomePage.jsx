@@ -88,6 +88,7 @@ const AdminHomePage = () => {
                   {request.status === 'Done' && (
                     <p className="text-sm text-[#333333]">Completed by: {request.staff}</p>
                   )}
+                  <p className="text-sm text-[#333333]">Hostel: {request.hostel}</p>
                 </div>
                 {request.status === 'Unaccepted' && (
                   <p className="text-[#FF6F61] font-bold">Unaccepted</p>

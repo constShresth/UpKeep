@@ -11,7 +11,7 @@ export function Navbar() {
   return (
     <nav className="bg-teal-500 text-white p-4">
       <ul className="flex justify-evenly items-center">
-        <li>
+        {/* <li>
           <Link to="/login" className="hover:text-gray-200">Login</Link>
         </li>
         <li>
@@ -22,7 +22,7 @@ export function Navbar() {
         </li>
         <li>
           <Link to="/staff/home" className="hover:text-gray-200">Staff</Link>
-        </li>
+        </li> */}
         
         {isAuthenticated && <li>
           <button

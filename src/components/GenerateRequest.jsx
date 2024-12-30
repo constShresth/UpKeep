@@ -1,6 +1,7 @@
 import React from 'react'
 
-const GenerateRequest = ({handleSubmit, timeSlots, cleaningOptions, toggleCleaningOption, toggleSlotSelection}) => {
+const GenerateRequest = ({handleSubmit, timeSlots, cleaningOptions, toggleCleaningOption, toggleSlotSelection, todayRequestGenerated, selectedSlots, selectedAreas}) => {
+  console.log("todayRequestGenerated", todayRequestGenerated)
   return (
     <div className="max-w-2xl min-w-[42rem] h-2/3 flex flex-col justify-center items-center bg-[#FFFFFF] p-8 rounded-lg shadow-lg">
           <form className="flex flex-col items-center" onSubmit={handleSubmit}>
@@ -42,8 +43,9 @@ const GenerateRequest = ({handleSubmit, timeSlots, cleaningOptions, toggleCleani
               ))}
             </div>
             <button
-              className="px-6 py-2 rounded-md bg-[#008080] text-white hover:bg-[#32CD32] shadow-md"
+              className="px-6 py-2 rounded-md bg-[#008080] text-white hover:bg-[#32CD32] shadow-md disabled:opacity-50"
               type="submit"
+              disabled={todayRequestGenerated }
             >
               Book
             </button>
